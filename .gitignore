@@ -1,0 +1,40 @@
+# ========================
+# PYTHON & FASTAPI
+# ========================
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+env/
+.pytest_cache/
+
+# ========================
+# DOCKER & BASE DE DATOS
+# ========================
+#Esto evita subir la base de datos local al repositorio
+pgdata/
+
+# ========================
+# SEGURIDAD
+# ========================
+# Aquí pondremos contraseñas y certificados OFTP2 más adelante
+.env
+*.pem
+*.key
+*.crt
+
+# ========================
+# REACT & NODE (Próximamente)
+# ========================
+node_modules/
+build/
+dist/
+.npm/
+
+# ========================
+# SISTEMA OPERATIVO & EDITORES
+# ========================
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

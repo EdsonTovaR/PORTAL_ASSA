@@ -1,0 +1,41 @@
+
+
+services:
+  # Servicio 1: Nuestra Base de Datos
+  db:
+    image: postgres:15-alpine
+    container_name: portal_assa_db
+    restart: always
+    environment:
+      POSTGRES_USER: assa_admin
+      POSTGRES_PASSWORD: password_seguro_123
+      POSTGRES_DB: portal_assa
+    ports:
+      - "5433:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+
+  # Servicio 2: Interfaz visual para ver nuestra BD (Opcional pero recomendado)
+  adminer:
+    image: adminer
+    container_name: portal_assa_adminer
+    restart: always
+    ports:
+      - "8080:8080"
+    depends_on:
+      - db
+
+  api:
+    build: ./backend
+    container_name: portal_assa_api
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app  # Sincroniza tu código en vivo
+    depends_on:
+      - db
+
+# Declaración de persistencia
+volumes:
+  pgdata:
