@@ -36,6 +36,18 @@ services:
     depends_on:
       - db
 
+  #La interfaz visual
+  frontend:
+    build: ./frontend
+    container_name: portal_assa_frontend
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules # Evita conflictos entre tu Ubuntu y el contenedor
+    depends_on:
+      - api
+
 # Declaración de persistencia
 volumes:
   pgdata:
