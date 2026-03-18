@@ -75,3 +75,24 @@ class Transportista(TransportistaBase):
 
     class Config:
         from_attributes = True
+
+# --- ESQUEMAS PARA USUARIOS ---
+class UsuarioBase(BaseModel):
+    username: str
+
+# Cuando alguien crea una cuenta, debe enviar su contraseña en texto plano
+class UsuarioCreate(UsuarioBase):
+    password: str
+
+# Cuando FastAPI responde, NUNCA devuelve la contraseña, solo el ID y el nombre
+class UsuarioResponse(UsuarioBase):
+    id: int
+    is_active: bool
+
+    class Config:
+        from_attributes = True
+
+# El esquema para el Token JWT que le devolveremos al Frontend
+class Token(BaseModel):
+    access_token: str
+    token_type: str
