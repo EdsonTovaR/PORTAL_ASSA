@@ -59,3 +59,19 @@ class EmbarqueCabecera(EmbarqueCabeceraBase):
 
     class Config:
         from_attributes = True
+
+# --- ESQUEMAS PARA TRANSPORTISTA ---
+class TransportistaBase(BaseModel):
+    nombre_chofer: str
+    placas: str
+    linea_transportista: Optional[str] = None
+
+class TransportistaCreate(TransportistaBase):
+    pass
+
+class Transportista(TransportistaBase):
+    id: int
+    creado_en: datetime
+
+    class Config:
+        from_attributes = True

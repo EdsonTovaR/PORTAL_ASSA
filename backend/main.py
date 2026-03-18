@@ -1,12 +1,22 @@
 import vda_generator
 from fastapi.responses import PlainTextResponse
 from fastapi import FastAPI, Depends, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 import models, schemas
 from database import SessionLocal, engine
 
 # Inicializamos la app
 app = FastAPI(title="API Portal ASSA")
+
+# PERMISOS CORS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173"], # Le damos permiso exclusivo a tu React
+    allow_credentials=True,
+    allow_methods=["*"], # Permite POST, GET, PUT, DELETE
+    allow_headers=["*"], # Permite cualquier tipo de encabezado
+)
 
 # Buena práctica: Función generadora de sesiones (Dependency Injection)
 # Abre la conexión cuando llega una petición y la cierra de forma segura cuando termina
@@ -78,6 +88,13 @@ def crear_embarque(embarque: schemas.EmbarqueCabeceraCreate, db: Session = Depen
     
     return db_embarque
 
+#Obtener el historial de todos los embarques
+@app.get("/embarques", response_model=list[schemas.EmbarqueCabecera])
+def obtener_embarques(db: Session = Depends(get_db)):
+    # Usamos .order_by(.desc()) para que el embarque más reciente salga arriba en la tabla
+    embarques = db.query(models.EmbarqueCabecera).order_by(models.EmbarqueCabecera.id.desc()).all()
+    return embarques
+
 #Generar y ver el archivo VDA 4913
 @app.get("/embarques/{embarque_id}/vda", response_class=PlainTextResponse)
 def descargar_vda(embarque_id: int, db: Session = Depends(get_db)):
@@ -93,3 +110,21 @@ def descargar_vda(embarque_id: int, db: Session = Depends(get_db)):
     
     # 4. Devolvemos el texto plano
     return texto_vda
+
+# NUEVA RUTA: Obtener todos los transportistas
+@app.get("/transportistas", response_model=list[schemas.Transportista])
+def obtener_transportistas(db: Session = Depends(get_db)):
+    return db.query(models.Transportista).all()
+
+# NUEVA RUTA: Crear un transportista
+@app.post("/transportistas", response_model=schemas.Transportista)
+def crear_transportista(transportista: schemas.TransportistaCreate, db: Session = Depends(get_db)):
+    nuevo_transportista = models.Transportista(
+        nombre_chofer=transportista.nombre_chofer,
+        placas=transportista.placas,
+        linea_transportista=transportista.linea_transportista
+    )
+    db.add(nuevo_transportista)
+    db.commit()
+    db.refresh(nuevo_transportista)
+    return nuevo_transportista

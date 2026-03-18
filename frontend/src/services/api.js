@@ -1,8 +1,8 @@
 import axios from 'axios';
 
-// Creamos la conexión base apuntando a nuestro contenedor de FastAPI
+// Conexión base apuntando al contenedor de FastAPI
 const api = axios.create({
-    baseURL: 'http://localhost:8000', // La dirección de tu backend
+    baseURL: 'http://localhost:8000', // La dirección del backend
     headers: {
         'Content-Type': 'application/json'
     }
@@ -26,8 +26,24 @@ export const crearEmbarque = async (datosEmbarque) => {
 };
 
 export const descargarVDA = async (embarqueId) => {
-    // Nota: El VDA no es JSON, es texto plano, por eso configuramos el tipo de respuesta
+    //El VDA no es JSON, es texto plano, por eso configuramos el tipo de respuesta
     const response = await api.get(`/embarques/${embarqueId}/vda`, { responseType: 'text' });
+    return response.data;
+};
+
+export const getEmbarques = async () => {
+    const response = await api.get('/embarques');
+    return response.data;
+};
+
+// --- FUNCIONES PARA TRANSPORTISTAS ---
+export const getTransportistas = async () => {
+    const response = await api.get('/transportistas');
+    return response.data;
+};
+
+export const crearTransportista = async (datosTransportista) => {
+    const response = await api.post('/transportistas', datosTransportista);
     return response.data;
 };
 

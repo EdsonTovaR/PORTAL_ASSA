@@ -16,7 +16,11 @@ class Transportista(Base):
     id = Column(Integer, primary_key=True, index=True)
     nombre_chofer = Column(String(100), nullable=False)
     placas = Column(String(20), nullable=False)
+    linea_transportista = Column(String(100), nullable=True)
     creado_en = Column(DateTime, default=datetime.datetime.utcnow)
+
+    # Relación inversa
+    #embarques = relationship("EmbarqueCabecera", back_populates="transportista")
 
 class EmbarqueCabecera(Base):
     __tablename__ = "embarques_cabecera"
