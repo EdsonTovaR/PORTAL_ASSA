@@ -1,10 +1,14 @@
-import vda_generator
 from fastapi.responses import PlainTextResponse
-from fastapi import FastAPI, Depends, HTTPException
+from fastapi import FastAPI, Depends, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
-import models, schemas
+import models, schemas,vda_generator,auth
 from database import SessionLocal, engine
+from fastapi.security import OAuth2PasswordBearer
+
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
+
 
 # Inicializamos la app
 app = FastAPI(title="API Portal ASSA")
@@ -128,3 +132,48 @@ def crear_transportista(transportista: schemas.TransportistaCreate, db: Session 
     db.commit()
     db.refresh(nuevo_transportista)
     return nuevo_transportista
+
+# ==========================================
+# RUTAS DE SEGURIDAD Y USUARIOS
+# ==========================================
+
+# 1. Registrar un nuevo usuario (Solo lo usarás tú como Admin por ahora)
+@app.post("/usuarios/registro", response_model=schemas.UsuarioResponse)
+def registrar_usuario(usuario: schemas.UsuarioCreate, db: Session = Depends(get_db)):
+    # Verificamos si el usuario ya existe
+    db_user = db.query(models.Usuario).filter(models.Usuario.username == usuario.username).first()
+    if db_user:
+        raise HTTPException(status_code=400, detail="El nombre de usuario ya está registrado")
+    
+    # Encriptamos la contraseña ANTES de guardarla
+    password_encriptada = auth.obtener_password_hash(usuario.password)
+    
+    nuevo_usuario = models.Usuario(
+        username=usuario.username,
+        hashed_password=password_encriptada
+    )
+    
+    db.add(nuevo_usuario)
+    db.commit()
+    db.refresh(nuevo_usuario)
+    return nuevo_usuario
+
+# 2. Iniciar Sesión (Login) y devolver el Token JWT
+@app.post("/login", response_model=schemas.Token)
+def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
+    # Buscamos al usuario en la base de datos
+    usuario = db.query(models.Usuario).filter(models.Usuario.username == form_data.username).first()
+    
+    # Si no existe, o si la contraseña no coincide con el hash guardado...
+    if not usuario or not auth.verificar_password(form_data.password, usuario.hashed_password):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Usuario o contraseña incorrectos",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    
+    # Si todo es correcto, le fabricamos su gafete (Token)
+    access_token = auth.crear_token_acceso(data={"sub": usuario.username})
+    
+    # Se lo entregamos
+    return {"access_token": access_token, "token_type": "bearer"}
