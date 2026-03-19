@@ -7,16 +7,29 @@ import models, schemas,vda_generator,auth
 from database import SessionLocal, engine
 from fastapi.security import OAuth2PasswordBearer
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
+
 
 
 # Inicializamos la app
 app = FastAPI(title="API Portal ASSA")
 
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
+
+# Esta función es el "cadenero" que pide el gafete (Token)
+def obtener_usuario_actual(token: str = Depends(oauth2_scheme)):
+    # Por ahora solo verificamos que el token esté presente
+    # En la siguiente fase, aquí validaremos matemáticamente si el token es real
+    return token
+
+# NUEVA RUTA PROTEGIDA (El candado)
+@app.get("/usuarios/me")
+def leer_perfil_usuario(token: str = Depends(obtener_usuario_actual)):
+    return {"mensaje": "¡Entraste a la zona VIP!", "tu_token": token}
+
 # PERMISOS CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"], # Le damos permiso exclusivo a tu React
+    allow_origins=["http://localhost:5173"], # Le damos permiso exclusivo a React
     allow_credentials=True,
     allow_methods=["*"], # Permite POST, GET, PUT, DELETE
     allow_headers=["*"], # Permite cualquier tipo de encabezado

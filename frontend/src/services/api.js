@@ -47,4 +47,19 @@ export const crearTransportista = async (datosTransportista) => {
     return response.data;
 };
 
+// --- FUNCIONES DE SEGURIDAD ---
+export const loginUsuario = async (username, password) => {
+    // FastAPI (OAuth2) exige que el login se envíe como Form-Data, no como JSON
+    const formData = new URLSearchParams();
+    formData.append('username', username);
+    formData.append('password', password);
+
+    const response = await api.post('/login', formData, {
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded'
+        }
+    });
+    return response.data;
+};
+
 export default api;
