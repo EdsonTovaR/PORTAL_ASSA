@@ -43,3 +43,11 @@ CREATE TABLE embarques_detalle (
     -- Relación con la cabecera
     CONSTRAINT fk_embarque FOREIGN KEY(embarque_id) REFERENCES embarques_cabecera(id) ON DELETE CASCADE
 );
+
+-- TABLA DE USUARIOS (Para el Login y Seguridad JWT)
+CREATE TABLE IF NOT EXISTS usuarios (
+    id SERIAL PRIMARY KEY,
+    username VARCHAR(50) UNIQUE NOT NULL,
+    hashed_password VARCHAR(255) NOT NULL,
+    is_active BOOLEAN DEFAULT TRUE
+);

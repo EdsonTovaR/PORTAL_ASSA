@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 import models, schemas,vda_generator,auth
 from database import SessionLocal, engine
 from fastapi.security import OAuth2PasswordBearer
-
+import os
 
 
 
@@ -190,3 +190,28 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
     
     # Se lo entregamos
     return {"access_token": access_token, "token_type": "bearer"}
+
+# NUEVA RUTA: Enviar a la Drop Zone de Mendelson
+@app.post("/embarques/{embarque_id}/enviar-oftp2")
+def enviar_embarque_oftp2(embarque_id: int, db: Session = Depends(get_db), token: str = Depends(obtener_usuario_actual)):
+    
+    # 1. PRIMERO buscamos el objeto completo en la base de datos
+    embarque = db.query(models.EmbarqueCabecera).filter(models.EmbarqueCabecera.id == embarque_id).first()
+    
+    if not embarque:
+        raise HTTPException(status_code=404, detail="Embarque no encontrado")
+        
+    # 2. AHORA SÍ, le pasamos el objeto completo a la máquina traductora
+    texto_vda = vda_generator.generar_vda_4913(embarque)
+    
+    # 3. Definimos el nombre del archivo y la ruta de la Drop Zone
+    nombre_archivo = f"VDA4913_{embarque.folio_embarque}.txt"
+    ruta_outbox = os.path.join("/app/ediprocessing/outbox", nombre_archivo)
+    
+    # 4. Escribimos el archivo en el disco duro
+    try:
+        with open(ruta_outbox, "w") as archivo:
+            archivo.write(texto_vda)
+        return {"mensaje": f"Archivo {nombre_archivo} depositado con éxito en la Drop Zone para Mendelson"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error al escribir en disco: {str(e)}")

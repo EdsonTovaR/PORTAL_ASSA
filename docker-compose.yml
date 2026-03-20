@@ -32,7 +32,8 @@ services:
     ports:
       - "8000:8000"
     volumes:
-      - ./backend:/app  # Sincroniza tu código en vivo
+      - ./backend:/app
+      - ./ediprocessing:/app/ediprocessing
     depends_on:
       - db
 
@@ -47,6 +48,19 @@ services:
       - /app/node_modules # Evita conflictos entre tu Ubuntu y el contenedor
     depends_on:
       - api
+    
+  oftp2-engine:
+    # Cambiamos openjdk por el estándar actual de Eclipse Temurin
+    image: eclipse-temurin:11-jre-focal
+    container_name: portal_assa_oftp2
+    restart: unless-stopped
+    ports:
+      - "3305:3305" 
+      - "8088:8088" 
+    volumes:
+      - ./ediprocessing:/app/ediprocessing
+      - ./mendelson_config:/app/config 
+    command: tail -f /dev/null
 
 # Declaración de persistencia
 volumes:

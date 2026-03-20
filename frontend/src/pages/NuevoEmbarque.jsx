@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 // 1. IMPORTAMOS LAS FUNCIONES DE LOS CATÁLOGOS
-import { crearEmbarque, descargarVDA, getClientes, getTransportistas } from '../services/api'; 
+import { crearEmbarque, descargarVDA, getClientes, getTransportistas, enviarOftp2 } from '../services/api'; 
+
 
 const NuevoEmbarque = () => {
   const [embarque, setEmbarque] = useState({
@@ -85,6 +86,16 @@ const NuevoEmbarque = () => {
     }
   };
 
+  const handleEnviarOftp2 = async () => {
+    try {
+      const respuesta = await enviarOftp2(embarqueGuardadoId);
+      alert(`¡Éxito! \n${respuesta.mensaje}`);
+    } catch (error) {
+      console.error("Error al enviar por OFTP2:", error);
+      alert("Error: No se pudo depositar el archivo en la Drop Zone. Revisa tu sesión o los permisos del servidor.");
+    }
+  };
+
   return (
     <div style={{ padding: '20px', maxWidth: '800px', margin: 'auto' }}>
       <h2>Registrar Nuevo Embarque (VDA 4913)</h2>
@@ -141,10 +152,17 @@ const NuevoEmbarque = () => {
             {embarqueGuardadoId ? 'Guardado Exitoso' : 'Guardar Embarque'}
           </button>
 
+          {/* Si el embarque ya se guardó, mostramos estas dos opciones */}
           {embarqueGuardadoId && (
-            <button type="button" onClick={handleDescargarVDA} style={{ padding: '10px 20px', backgroundColor: '#28a745', color: 'white', border: 'none', cursor: 'pointer', fontWeight: 'bold' }}>
-              ⬇️ Descargar Archivo VDA
-            </button>
+            <>
+              <button type="button" onClick={handleDescargarVDA} style={{ padding: '10px 20px', backgroundColor: '#28a745', color: 'white', border: 'none', cursor: 'pointer', fontWeight: 'bold' }}>
+                ⬇️ Descargar Manual
+              </button>
+              
+              <button type="button" onClick={handleEnviarOftp2} style={{ padding: '10px 20px', backgroundColor: '#ff8800', color: 'white', border: 'none', cursor: 'pointer', fontWeight: 'bold' }}>
+                🚀 Enviar a Planta (OFTP2)
+              </button>
+            </>
           )}
         </div>
       </form>

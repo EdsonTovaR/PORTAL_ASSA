@@ -62,4 +62,18 @@ export const loginUsuario = async (username, password) => {
     return response.data;
 };
 
+// --- FUNCIÓN PARA AUTOMATIZACIÓN OFTP2 ---
+export const enviarOftp2 = async (embarqueId) => {
+    // 1. Sacamos el gafete de la caja fuerte
+    const token = localStorage.getItem('token');
+    
+    // 2. Hacemos la petición enviando el gafete en los Headers
+    const response = await api.post(`/embarques/${embarqueId}/enviar-oftp2`, {}, {
+        headers: {
+            'Authorization': `Bearer ${token}`
+        }
+    });
+    return response.data;
+};
+
 export default api;
