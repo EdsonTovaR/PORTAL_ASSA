@@ -1,16 +1,20 @@
 import { useState, useEffect } from 'react';
-import { getTransportistas, crearTransportista } from '../services/api';
+import { getTransportistas, crearTransportista, actualizarTransportista } from '../services/api';
 
 const Transportistas = () => {
   const [transportistas, setTransportistas] = useState([]);
   const [cargando, setCargando] = useState(true);
-  
-  const [nuevoTransportista, setNuevoTransportista] = useState({
-    nombre_chofer: '',
-    placas: '',
-    linea_transportista: ''
+
+  // --- ESTADOS UNIFICADOS PARA LA MODAL ---
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [transpEditando, setTranspEditando] = useState({ 
+    id: null, 
+    linea_transportista: '', 
+    nombre_chofer: '', 
+    placas: '' 
   });
 
+  // --- CARGA INICIAL DE DATOS ---
   const cargarTransportistas = async () => {
     try {
       const data = await getTransportistas();
@@ -26,88 +30,144 @@ const Transportistas = () => {
     cargarTransportistas();
   }, []);
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setNuevoTransportista((prev) => ({ ...prev, [name]: value }));
+  // --- FUNCIONES CONTROLADORAS DE LA MODAL ---
+  // Abre la ventana con datos (Para EDITAR)
+  const abrirModalParaEditar = (transp) => {
+    setTranspEditando(transp);
+    setIsModalOpen(true);
   };
 
-  const handleSubmit = async (e) => {
+  // Abre la ventana en blanco (Para CREAR)
+  const abrirModalParaCrear = () => {
+    setTranspEditando({ id: null, linea_transportista: '', nombre_chofer: '', placas: '' });
+    setIsModalOpen(true);
+  };
+
+  // Cierra y limpia la memoria
+  const cerrarModal = () => {
+    setIsModalOpen(false);
+    setTranspEditando({ id: null, linea_transportista: '', nombre_chofer: '', placas: '' });
+  };
+
+  // --- EL SÚPER CONTROLADOR DE GUARDADO (POST / PUT) ---
+  const handleGuardar = async (e) => {
     e.preventDefault();
     try {
-      await crearTransportista(nuevoTransportista);
-      alert("¡Transportista registrado exitosamente!");
-      setNuevoTransportista({ nombre_chofer: '', placas: '', linea_transportista: '' });
-      cargarTransportistas(); 
+      if (transpEditando.id) {
+        // --- MODO ACTUALIZAR (PUT) ---
+        await actualizarTransportista(transpEditando.id, {
+          linea_transportista: transpEditando.linea_transportista,
+          nombre_chofer: transpEditando.nombre_chofer,
+          placas: transpEditando.placas
+        });
+        
+        // Actualización Optimista en la tabla
+        setTransportistas(transportistas.map(t => t.id === transpEditando.id ? transpEditando : t));
+        alert("¡Transportista actualizado con éxito!");
+      
+      } else {
+        // --- MODO CREAR (POST) ---
+        const nuevoTransp = await crearTransportista({
+          linea_transportista: transpEditando.linea_transportista,
+          nombre_chofer: transpEditando.nombre_chofer,
+          placas: transpEditando.placas
+        });
+        
+        // Agregamos el nuevo registro a la tabla en pantalla
+        setTransportistas([...transportistas, nuevoTransp]);
+        alert("¡Transportista registrado exitosamente!");
+      }
+      
+      cerrarModal(); // Desaparecemos el cuadrito
     } catch (error) {
-      console.error("Error al crear transportista:", error);
-      alert("Error al registrar el transportista.");
+      console.error("Error al guardar:", error);
+      alert("Hubo un error al guardar los cambios.");
     }
   };
 
   return (
-    <div style={{ padding: '20px', maxWidth: '800px', margin: 'auto' }}>
-      <h2 style={{ color: 'white', borderBottom: '1px solid #444', paddingBottom: '10px' }}>
-        Catálogo de Transportistas
-      </h2>
-
-      {/* FORMULARIO */}
-      <div style={{ backgroundColor: '#1e1e1e', padding: '20px', borderRadius: '8px', marginBottom: '20px' }}>
-        <h3 style={{ color: '#aaa', marginTop: 0 }}>Registrar Nuevo Transportista</h3>
-        <form onSubmit={handleSubmit} style={{ display: 'flex', gap: '10px', alignItems: 'flex-end', flexWrap: 'wrap' }}>
-          
-          <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minWidth: '200px' }}>
-            <label style={{ color: '#ccc', marginBottom: '5px' }}>Nombre del Chofer:</label>
-            <input type="text" name="nombre_chofer" value={nuevoTransportista.nombre_chofer} onChange={handleChange} required placeholder="Ej. Juan Pérez" style={{ padding: '8px' }} />
-          </div>
-
-          <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minWidth: '150px' }}>
-            <label style={{ color: '#ccc', marginBottom: '5px' }}>Placas:</label>
-            <input type="text" name="placas" value={nuevoTransportista.placas} onChange={handleChange} required placeholder="Ej. 123-ABC" style={{ padding: '8px' }} />
-          </div>
-
-          <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minWidth: '200px' }}>
-            <label style={{ color: '#ccc', marginBottom: '5px' }}>Línea Transportista:</label>
-            <input type="text" name="linea_transportista" value={nuevoTransportista.linea_transportista} onChange={handleChange} required placeholder="Ej. Transportes del Norte" style={{ padding: '8px' }} />
-          </div>
-
-          <button type="submit" style={{ padding: '10px 20px', backgroundColor: '#28a745', color: 'white', border: 'none', cursor: 'pointer', height: '35px' }}>
-            + Guardar
-          </button>
-        </form>
+    <div className="max-w-6xl mx-auto mt-8 mb-12">
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-3xl font-bold text-white">Líneas Transportistas</h2>
+        {/* BOTÓN CONECTADO PARA CREAR */}
+        <button 
+          onClick={abrirModalParaCrear} 
+          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-bold transition-colors shadow-lg shadow-blue-900/50"
+        >
+          + Nuevo Transportista
+        </button>
       </div>
 
-      {/* TABLA */}
-      {cargando ? (
-        <p style={{ color: '#ccc' }}>Cargando catálogo...</p>
-      ) : (
-        <table style={{ width: '100%', borderCollapse: 'collapse', color: '#eee' }}>
-          <thead>
-            <tr style={{ backgroundColor: '#333', textAlign: 'left' }}>
-              <th style={{ padding: '12px', border: '1px solid #555' }}>ID</th>
-              <th style={{ padding: '12px', border: '1px solid #555' }}>Chofer</th>
-              <th style={{ padding: '12px', border: '1px solid #555' }}>Placas</th>
-              <th style={{ padding: '12px', border: '1px solid #555' }}>Línea</th>
-            </tr>
-          </thead>
-          <tbody>
-            {transportistas.length === 0 ? (
-              <tr>
-                <td colSpan="4" style={{ padding: '15px', textAlign: 'center', border: '1px solid #555' }}>
-                  No hay transportistas registrados.
-                </td>
+      <div className="bg-gray-800 rounded-xl shadow-lg border border-gray-700 overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className="bg-gray-900/80 text-gray-400 text-sm uppercase tracking-wider border-b border-gray-700">
+                <th className="p-4 font-semibold w-16">ID</th>
+                <th className="p-4 font-semibold">Línea Transportista</th>
+                <th className="p-4 font-semibold">Nombre del Chofer</th>
+                <th className="p-4 font-semibold">Placas</th>
+                <th className="p-4 font-semibold text-center w-24">Acciones</th>
               </tr>
-            ) : (
-              transportistas.map((trans) => (
-                <tr key={trans.id} style={{ borderBottom: '1px solid #444' }}>
-                  <td style={{ padding: '12px', border: '1px solid #555' }}>{trans.id}</td>
-                  <td style={{ padding: '12px', border: '1px solid #555', fontWeight: 'bold' }}>{trans.nombre_chofer}</td>
-                  <td style={{ padding: '12px', border: '1px solid #555' }}>{trans.placas}</td>
-                  <td style={{ padding: '12px', border: '1px solid #555' }}>{trans.linea_transportista}</td>
+            </thead>
+            <tbody className="divide-y divide-gray-700/50">
+              {transportistas.map((transp) => (
+                <tr key={transp.id} className="hover:bg-gray-700/30 transition-colors">
+                  <td className="p-4 text-gray-500 font-mono">#{transp.id}</td>
+                  <td className="p-4 text-white font-medium">{transp.linea_transportista}</td>
+                  <td className="p-4 text-gray-300">{transp.nombre_chofer}</td>
+                  <td className="p-4 text-orange-400 font-mono border border-orange-900/50 bg-orange-900/10 rounded px-2 py-1 inline-block mt-3 ml-4">
+                    {transp.placas}
+                  </td>
+                  <td className="p-4 text-center">
+                    <button onClick={() => abrirModalParaEditar(transp)} className="text-gray-400 hover:text-blue-400 transition-colors p-1" title="Editar">
+                    ✏️
+                    </button>
+                  </td>
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        
+        {transportistas.length === 0 && !cargando && (
+          <div className="p-8 text-center text-gray-500 font-medium">
+            No hay transportistas registrados en la base de datos.
+          </div>
+        )}
+      </div>
+
+      {/* --- VENTANA MODAL FLOTANTE (TRANSPORTISTAS) --- */}
+      {isModalOpen && (
+        <div className="fixed inset-0 bg-black/70 z-50 flex justify-center items-center backdrop-blur-sm">
+          <div className="bg-gray-800 p-8 rounded-xl shadow-2xl w-full max-w-md border border-gray-700">
+            {/* Título dinámico */}
+            <h3 className="text-2xl font-bold text-white mb-6 border-b border-gray-700 pb-2">
+              {transpEditando.id ? 'Editar Transportista' : 'Nuevo Transportista'}
+            </h3>
+
+            {/* Formulario conectado al Súper Controlador */}
+            <form onSubmit={handleGuardar} className="flex flex-col gap-4">
+              <div>
+                <label className="text-gray-400 block mb-2 text-sm font-medium">Línea Transportista</label>
+                <input type="text" value={transpEditando.linea_transportista} onChange={(e) => setTranspEditando({...transpEditando, linea_transportista: e.target.value})} required className="w-full p-3 rounded bg-gray-700 text-white border border-gray-600 focus:border-blue-500 focus:outline-none" />
+              </div>
+              <div>
+                <label className="text-gray-400 block mb-2 text-sm font-medium">Nombre del Chofer</label>
+                <input type="text" value={transpEditando.nombre_chofer} onChange={(e) => setTranspEditando({...transpEditando, nombre_chofer: e.target.value})} required className="w-full p-3 rounded bg-gray-700 text-white border border-gray-600 focus:border-blue-500 focus:outline-none" />
+              </div>
+              <div>
+                <label className="text-gray-400 block mb-2 text-sm font-medium">Placas</label>
+                <input type="text" value={transpEditando.placas} onChange={(e) => setTranspEditando({...transpEditando, placas: e.target.value})} required className="w-full p-3 rounded bg-gray-700 text-white border border-gray-600 focus:border-blue-500 focus:outline-none font-mono text-orange-400" />
+              </div>
+              
+              <div className="flex justify-end gap-3 mt-4">
+                <button type="button" onClick={cerrarModal} className="px-4 py-2 bg-gray-600 hover:bg-gray-500 text-white rounded font-medium transition-colors">Cancelar</button>
+                <button type="submit" className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded font-bold transition-colors shadow-lg shadow-blue-900/50">Guardar</button>
+              </div>
+            </form>
+          </div>
+        </div>
       )}
     </div>
   );

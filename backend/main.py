@@ -7,6 +7,8 @@ import models, schemas,vda_generator,auth
 from database import SessionLocal, engine
 from fastapi.security import OAuth2PasswordBearer
 import os
+from pydantic import BaseModel
+from sqlalchemy import func
 
 
 
@@ -14,6 +16,8 @@ import os
 app = FastAPI(title="API Portal ASSA")
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
+
+
 
 # Esta función es el "cadenero" que pide el gafete (Token)
 def obtener_usuario_actual(token: str = Depends(oauth2_scheme)):
@@ -146,6 +150,26 @@ def crear_transportista(transportista: schemas.TransportistaCreate, db: Session 
     db.refresh(nuevo_transportista)
     return nuevo_transportista
 
+# --- NUEVA RUTA: Estadísticas para el Dashboard ---
+@app.get("/estadisticas")
+def obtener_estadisticas(db: Session = Depends(get_db), token: str = Depends(obtener_usuario_actual)):
+    # Hacemos conteos ultra-rápidos directamente en PostgreSQL
+    total_clientes = db.query(models.Cliente).count()
+    total_transportistas = db.query(models.Transportista).count()
+    total_embarques = db.query(models.EmbarqueCabecera).count()
+    
+    # Extraemos solo los últimos 5 embarques para un "vistazo rápido"
+    ultimos_embarques = db.query(models.EmbarqueCabecera).order_by(models.EmbarqueCabecera.id.desc()).limit(5).all()
+    
+    return {
+        "totales": {
+            "clientes": total_clientes,
+            "transportistas": total_transportistas,
+            "embarques": total_embarques
+        },
+        "actividad_reciente": ultimos_embarques
+    }
+
 # ==========================================
 # RUTAS DE SEGURIDAD Y USUARIOS
 # ==========================================
@@ -215,3 +239,63 @@ def enviar_embarque_oftp2(embarque_id: int, db: Session = Depends(get_db), token
         return {"mensaje": f"Archivo {nombre_archivo} depositado con éxito en la Drop Zone para Mendelson"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error al escribir en disco: {str(e)}")
+
+# --- ESQUEMA DE VALIDACIÓN ---
+# Esto le dice a FastAPI exactamente qué datos esperar desde React
+class ClienteActualizar(BaseModel):
+    nombre: str
+    codigo_odette: str
+
+# --- NUEVA RUTA: Actualizar Cliente (PUT) ---
+@app.put("/clientes/{cliente_id}")
+def actualizar_cliente(
+    cliente_id: int, 
+    cliente_data: ClienteActualizar, 
+    db: Session = Depends(get_db), 
+    token: str = Depends(obtener_usuario_actual)
+):
+    # 1. Buscamos al cliente en la base de datos usando el ID de la URL
+    cliente_db = db.query(models.Cliente).filter(models.Cliente.id == cliente_id).first()
+    
+    # 2. Si alguien intenta editar un ID que no existe, lanzamos el escudo
+    if not cliente_db:
+        raise HTTPException(status_code=404, detail="Cliente no encontrado en la base de datos")
+        
+    # 3. Reemplazamos los datos viejos con los datos nuevos que llegaron
+    cliente_db.nombre = cliente_data.nombre
+    cliente_db.codigo_odette = cliente_data.codigo_odette
+    
+    # 4. Confirmamos el guardado en el disco duro y refrescamos la memoria
+    db.commit()
+    db.refresh(cliente_db)
+    
+    return {"mensaje": "Cliente actualizado exitosamente", "cliente": cliente_db}
+
+# --- ESQUEMA DE VALIDACIÓN ---
+class TransportistaActualizar(BaseModel):
+    linea_transportista: str
+    nombre_chofer: str
+    placas: str
+
+# --- RUTA: Actualizar Transportista (PUT) ---
+@app.put("/transportistas/{transp_id}")
+def actualizar_transportista(
+    transp_id: int, 
+    transp_data: TransportistaActualizar, 
+    db: Session = Depends(get_db), 
+    token: str = Depends(obtener_usuario_actual)
+):
+    transp_db = db.query(models.Transportista).filter(models.Transportista.id == transp_id).first()
+    
+    if not transp_db:
+        raise HTTPException(status_code=404, detail="Transportista no encontrado")
+        
+    transp_db.linea_transportista = transp_data.linea_transportista
+    transp_db.nombre_chofer = transp_data.nombre_chofer
+    transp_db.placas = transp_data.placas
+    
+    db.commit()
+    db.refresh(transp_db)
+    
+    return {"mensaje": "Transportista actualizado", "transportista": transp_db}
+

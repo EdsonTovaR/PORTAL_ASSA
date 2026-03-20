@@ -76,4 +76,41 @@ export const enviarOftp2 = async (embarqueId) => {
     return response.data;
 };
 
+// --- FUNCIÓN PARA ACTUALIZAR UN CLIENTE ---
+export const actualizarCliente = async (id, datosActualizados) => {
+    const token = localStorage.getItem('token');
+    
+    const response = await api.put(`/clientes/${id}`, datosActualizados, {
+        headers: {
+            'Authorization': `Bearer ${token}`
+        }
+    });
+    return response.data;
+};
+
+// --- FUNCIÓN PARA ACTUALIZAR UN TRANSPORTISTA ---
+export const actualizarTransportista = async (id, datosActualizados) => {
+    const token = localStorage.getItem('token');
+    
+    const response = await api.put(`/transportistas/${id}`, datosActualizados, {
+        headers: {
+            'Authorization': `Bearer ${token}`
+        }
+    });
+    return response.data;
+};
+
+// --- FUNCIÓN PARA EL DASHBOARD ---
+export const getEstadisticas = async () => {
+    const token = localStorage.getItem('token');
+    const response = await api.get('/estadisticas', {
+        headers: {
+            'Authorization': `Bearer ${token}`
+        }
+    });
+    return response.data;
+};
+
+
+
 export default api;

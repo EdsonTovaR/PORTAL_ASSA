@@ -18,14 +18,17 @@ const RutaProtegida = ({ children }) => {
   
   // Si hay token, lo dejamos pasar a la página (children)
   return (
-    <>
-      <Navbar /> {/* El Navbar solo se muestra si ya inició sesión */}
-      <div style={{ padding: '20px' }}>
+    // Envolvemos todo en un div flex que ocupa el 100% del alto (min-h-screen)
+    // y le ponemos el fondo oscuro global (bg-gray-900)
+    <div className="min-h-screen bg-gray-900 flex flex-col">
+      <Navbar /> 
+      {/* El contenedor donde viven tus pantallas */}
+      <div className="flex-1 p-6">
         {children}
       </div>
-    </>
+    </div>
   );
-};
+};    
 
 function App() {
   return (

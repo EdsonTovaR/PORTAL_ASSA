@@ -1,16 +1,14 @@
 import { useState, useEffect } from 'react';
-import { getClientes, crearCliente } from '../services/api';
+import { getClientes, crearCliente, actualizarCliente } from '../services/api';
 
 const Clientes = () => {
   // 1. ESTADOS
   const [clientes, setClientes] = useState([]);
   const [cargando, setCargando] = useState(true);
-  
-  // Estado para el formulario del nuevo cliente
-  const [nuevoCliente, setNuevoCliente] = useState({
-    nombre: '',
-    codigo_odette: ''
-  });
+
+  // --- ESTADOS PARA LA EDICIÓN (MODAL) ---
+const [isModalOpen, setIsModalOpen] = useState(false);
+const [clienteEditando, setClienteEditando] = useState({ id: null, nombre: '', codigo_odette: '' });
 
   // 2. CARGAR DATOS (READ)
   const cargarClientes = async () => {
@@ -29,91 +27,153 @@ const Clientes = () => {
     cargarClientes();
   }, []);
 
-  // 3. MANEJADORES DEL FORMULARIO
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setNuevoCliente((prev) => ({
-      ...prev,
-      [name]: value
-    }));
+  // 1. Cuando el usuario hace clic en el lápiz
+  const abrirModal = (cliente) => {
+    setClienteEditando(cliente); // Copiamos los datos de esa fila al formulario flotante
+    setIsModalOpen(true); // Encendemos la ventana
   };
 
-  // 4. GUARDAR DATOS (CREATE)
-  const handleSubmit = async (e) => {
+  // Abre la ventana totalmente en blanco para un registro nuevo
+  const abrirModalParaCrear = () => {
+    setClienteEditando({ id: null, nombre: '', codigo_odette: '' });
+    setIsModalOpen(true);
+  };
+
+  // 2. Cuando el usuario cancela o termina
+  const cerrarModal = () => {
+    setIsModalOpen(false); // Apagamos la ventana
+    setClienteEditando({ id: null, nombre: '', codigo_odette: '' }); // Limpiamos la memoria
+  };
+
+  
+
+  
+
+  // Controlador unificado: Decide si hace POST (Crear) o PUT (Actualizar)
+  const handleGuardar = async (e) => {
     e.preventDefault();
     try {
-      await crearCliente(nuevoCliente);
-      alert("¡Cliente registrado exitosamente!");
-      
-      // Limpiamos el formulario
-      setNuevoCliente({ nombre: '', codigo_odette: '' });
-      
-      // ¡Magia! Volvemos a pedir los datos a Python para que la tabla se actualice sola
-      cargarClientes(); 
+      if (clienteEditando.id) {
+        // --- MODO ACTUALIZAR (PUT) ---
+        await actualizarCliente(clienteEditando.id, {
+          nombre: clienteEditando.nombre,
+          codigo_odette: clienteEditando.codigo_odette
+        });
+        // Actualizamos la memoria local
+        setClientes(clientes.map(c => c.id === clienteEditando.id ? clienteEditando : c));
+        alert("¡Cliente actualizado con éxito!");
+      } else {
+        // --- MODO CREAR (POST) ---
+        const nuevoCliente = await crearCliente({
+          nombre: clienteEditando.nombre,
+          codigo_odette: clienteEditando.codigo_odette
+        });
+        // Agregamos el nuevo cliente a la lista actual en pantalla
+        setClientes([...clientes, nuevoCliente]);
+        alert("¡Cliente registrado exitosamente!");
+      }
+      cerrarModal(); // Cerramos la ventana al terminar
     } catch (error) {
-      console.error("Error al crear cliente:", error);
-      // Recuerda que FastAPI lanza un error 400 si el Código Odette está duplicado
-      alert("Error al registrar. Verifica que el Código Odette no esté duplicado.");
+      console.error("Error al guardar:", error);
+      alert("Hubo un error al guardar. Verifica que el Código Odette no esté duplicado.");
     }
   };
 
   return (
-    <div style={{ padding: '20px', maxWidth: '800px', margin: 'auto' }}>
-      <h2 style={{ color: 'white', borderBottom: '1px solid #444', paddingBottom: '10px' }}>
-        Catálogo de Clientes
-      </h2>
-
-      {/* --- SECCIÓN 1: FORMULARIO DE REGISTRO --- */}
-      <div style={{ backgroundColor: '#1e1e1e', padding: '20px', borderRadius: '8px', marginBottom: '20px' }}>
-        <h3 style={{ color: '#aaa', marginTop: 0 }}>Registrar Nuevo Cliente</h3>
-        <form onSubmit={handleSubmit} style={{ display: 'flex', gap: '15px', alignItems: 'flex-end' }}>
-          
-          <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
-            <label style={{ color: '#ccc', marginBottom: '5px' }}>Nombre de la Empresa:</label>
-            <input type="text" name="nombre" value={nuevoCliente.nombre} onChange={handleChange} required placeholder="Ej. Volkswagen" style={{ padding: '8px' }} />
-          </div>
-
-          <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
-            <label style={{ color: '#ccc', marginBottom: '5px' }}>Código Odette:</label>
-            <input type="text" name="codigo_odette" value={nuevoCliente.codigo_odette} onChange={handleChange} required placeholder="Ej. VW-001" style={{ padding: '8px' }} />
-          </div>
-
-          <button type="submit" style={{ padding: '10px 20px', backgroundColor: '#28a745', color: 'white', border: 'none', cursor: 'pointer', height: '35px' }}>
-            + Guardar Cliente
-          </button>
-        </form>
+    <div className="max-w-6xl mx-auto mt-8 mb-12">
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-3xl font-bold text-white">Catálogo de Clientes</h2>
+        <button onClick={abrirModalParaCrear} className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-bold transition-colors shadow-lg shadow-blue-900/50">
+        + Nuevo Cliente
+        </button>
       </div>
 
-      {/* --- SECCIÓN 2: TABLA DE CLIENTES --- */}
-      {cargando ? (
-        <p style={{ color: '#ccc' }}>Cargando catálogo...</p>
-      ) : (
-        <table style={{ width: '100%', borderCollapse: 'collapse', color: '#eee' }}>
-          <thead>
-            <tr style={{ backgroundColor: '#333', textAlign: 'left' }}>
-              <th style={{ padding: '12px', border: '1px solid #555' }}>ID</th>
-              <th style={{ padding: '12px', border: '1px solid #555' }}>Nombre</th>
-              <th style={{ padding: '12px', border: '1px solid #555' }}>Código Odette</th>
-            </tr>
-          </thead>
-          <tbody>
-            {clientes.length === 0 ? (
-              <tr>
-                <td colSpan="3" style={{ padding: '15px', textAlign: 'center', border: '1px solid #555' }}>
-                  No hay clientes registrados.
-                </td>
+      <div className="bg-gray-800 rounded-xl shadow-lg border border-gray-700 overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className="bg-gray-900/80 text-gray-400 text-sm uppercase tracking-wider border-b border-gray-700">
+                <th className="p-4 font-semibold w-16">ID</th>
+                <th className="p-4 font-semibold">Empresa Destino</th>
+                <th className="p-4 font-semibold">Código Odette</th>
+                <th className="p-4 font-semibold text-center w-24">Acciones</th>
               </tr>
-            ) : (
-              clientes.map((cliente) => (
-                <tr key={cliente.id} style={{ borderBottom: '1px solid #444' }}>
-                  <td style={{ padding: '12px', border: '1px solid #555' }}>{cliente.id}</td>
-                  <td style={{ padding: '12px', border: '1px solid #555', fontWeight: 'bold' }}>{cliente.nombre}</td>
-                  <td style={{ padding: '12px', border: '1px solid #555' }}>{cliente.codigo_odette}</td>
+            </thead>
+            <tbody className="divide-y divide-gray-700/50">
+              {clientes.map((cliente) => (
+                <tr key={cliente.id} className="hover:bg-gray-700/30 transition-colors">
+                  <td className="p-4 text-gray-500 font-mono">#{cliente.id}</td>
+                  <td className="p-4 text-white font-medium">{cliente.nombre}</td>
+                  <td className="p-4 text-blue-400 font-mono tracking-wide">{cliente.codigo_odette}</td>
+                  <td className="p-4 text-center">
+                    <button 
+                    onClick={() => abrirModal(cliente)} 
+                    className="text-gray-400 hover:text-blue-400 transition-colors p-1" 
+                    title="Editar"
+                    >
+                    ✏️
+                    </button>
+                  </td>
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        
+        {/* Mensaje por si la tabla está vacía */}
+        {clientes.length === 0 && (
+          <div className="p-8 text-center text-gray-500 font-medium">
+            No hay clientes registrados en la base de datos.
+          </div>
+        )}
+      </div>
+      {/* --- VENTANA MODAL FLOTANTE --- */}
+      {isModalOpen && (
+        // Fondo negro semi-transparente (z-50 lo pone por encima de todo)
+        <div className="fixed inset-0 bg-black/70 z-50 flex justify-center items-center backdrop-blur-sm">
+          
+          {/* Tarjeta del formulario emergente */}
+          <div className="bg-gray-800 p-8 rounded-xl shadow-2xl w-full max-w-md border border-gray-700">
+            <h3 className="text-2xl font-bold text-white mb-6 border-b border-gray-700 pb-2">
+            {clienteEditando.id ? 'Editar Cliente' : 'Nuevo Cliente'}
+            </h3>
+            
+            <form onSubmit={handleGuardar} className="flex flex-col gap-4">
+              <div>
+                <label className="text-gray-400 block mb-2 text-sm font-medium">Nombre de la Empresa</label>
+                <input 
+                  type="text" 
+                  value={clienteEditando.nombre} 
+                  onChange={(e) => setClienteEditando({...clienteEditando, nombre: e.target.value})}
+                  required 
+                  className="w-full p-3 rounded bg-gray-700 text-white border border-gray-600 focus:border-blue-500 focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="text-gray-400 block mb-2 text-sm font-medium">Código Odette</label>
+                <input 
+                  type="text" 
+                  value={clienteEditando.codigo_odette} 
+                  onChange={(e) => setClienteEditando({...clienteEditando, codigo_odette: e.target.value})}
+                  required 
+                  className="w-full p-3 rounded bg-gray-700 text-white border border-gray-600 focus:border-blue-500 focus:outline-none font-mono"
+                />
+              </div>
+
+              {/* Botones de acción */}
+              <div className="flex justify-end gap-3 mt-4">
+                <button type="button" onClick={cerrarModal} className="px-4 py-2 bg-gray-600 hover:bg-gray-500 text-white rounded font-medium transition-colors">
+                  Cancelar
+                </button>
+                <button type="submit" className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded font-bold transition-colors shadow-lg shadow-blue-900/50">
+                  Guardar Cambios
+                </button>
+              </div>
+            </form>
+
+          </div>
+        </div>
       )}
     </div>
   );

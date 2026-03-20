@@ -1,101 +1,138 @@
 import { useState, useEffect } from 'react';
-import { getEmbarques, descargarVDA } from '../services/api';
+import { Link } from 'react-router-dom';
+import { getEstadisticas } from '../services/api';
 
 const Dashboard = () => {
-  // 1. EL ESTADO INICIAL: Empieza como un arreglo vacío []
-  const [embarques, setEmbarques] = useState([]);
+  const [stats, setStats] = useState({
+    totales: { clientes: 0, transportistas: 0, embarques: 0 },
+    actividad_reciente: []
+  });
   const [cargando, setCargando] = useState(true);
 
-  // 2. EL EFECTO: Se ejecuta una sola vez al cargar la página
   useEffect(() => {
     const cargarDatos = async () => {
       try {
-        const datos = await getEmbarques();
-        setEmbarques(datos);
+        const data = await getEstadisticas();
+        setStats(data);
       } catch (error) {
-        console.error("Error al cargar embarques:", error);
+        console.error("Error al cargar estadísticas:", error);
       } finally {
-        setCargando(false); // Apagamos el indicador de carga
+        setCargando(false);
       }
     };
-
     cargarDatos();
-  }, []); // <-- El arreglo vacío significa "Ejecuta esto solo al inicio"
+  }, []);
 
-  // 3. FUNCIÓN PARA DESCARGAR DESDE LA TABLA
-  const handleDescargar = async (id, folio) => {
-    try {
-      const textoVDA = await descargarVDA(id);
-      const blob = new Blob([textoVDA], { type: 'text/plain' });
-      const url = window.URL.createObjectURL(blob);
-      const enlace = document.createElement('a');
-      enlace.href = url;
-      enlace.setAttribute('download', `VDA4913_${folio}.txt`);
-      document.body.appendChild(enlace);
-      enlace.click();
-      enlace.parentNode.removeChild(enlace);
-      window.URL.revokeObjectURL(url);
-    } catch (error) {
-      alert("Error al descargar el archivo VDA.");
-    }
-  };
+  if (cargando) {
+    return <div className="text-white text-center mt-20 text-xl font-bold animate-pulse">Cargando Centro de Control...</div>;
+  }
 
   return (
-    <div style={{ padding: '20px', maxWidth: '1000px', margin: 'auto' }}>
-      <h2 style={{ color: 'white', borderBottom: '1px solid #444', paddingBottom: '10px' }}>
-        Historial de Embarques EDI
-      </h2>
+    <div className="max-w-6xl mx-auto mt-8 mb-12">
+      
+      <div className="mb-8">
+        <h1 className="text-4xl font-bold text-white tracking-wide">Centro de Control</h1>
+        <p className="text-gray-400 mt-2 text-lg">Resumen de operaciones logísticas en tiempo real.</p>
+      </div>
 
-      {/* Si está cargando, mostramos un mensaje, si no, mostramos la tabla */}
-      {cargando ? (
-        <p style={{ color: '#ccc' }}>Cargando datos desde PostgreSQL...</p>
-      ) : (
-        <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '20px', color: '#eee' }}>
-          <thead>
-            <tr style={{ backgroundColor: '#333', textAlign: 'left' }}>
-              <th style={{ padding: '12px', border: '1px solid #555' }}>ID</th>
-              <th style={{ padding: '12px', border: '1px solid #555' }}>Folio</th>
-              <th style={{ padding: '12px', border: '1px solid #555' }}>Fecha Salida</th>
-              <th style={{ padding: '12px', border: '1px solid #555' }}>Estatus EDI</th>
-              <th style={{ padding: '12px', border: '1px solid #555', textAlign: 'center' }}>Acción</th>
-            </tr>
-          </thead>
-          <tbody>
-            {/* Si no hay datos, mostramos una fila vacía */}
-            {embarques.length === 0 ? (
-              <tr>
-                <td colSpan="5" style={{ padding: '15px', textAlign: 'center', border: '1px solid #555' }}>
-                  No hay embarques registrados aún.
-                </td>
+      {/* --- TARJETAS DE INDICADORES (KPIs) --- */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+        
+        {/* Tarjeta 1: Embarques */}
+        <div className="bg-gradient-to-br from-blue-900 to-gray-800 p-6 rounded-2xl shadow-xl border border-blue-800/50 transform hover:-translate-y-1 transition-transform">
+          <div className="flex justify-between items-start">
+            <div>
+              <p className="text-blue-300 font-semibold mb-1 uppercase tracking-wider text-sm">Total de Embarques</p>
+              <h3 className="text-5xl font-bold text-white">{stats.totales.embarques}</h3>
+            </div>
+            <div className="text-4xl">📦</div>
+          </div>
+          <div className="mt-4">
+            <Link to="/nuevo-embarque" className="text-sm text-blue-400 hover:text-white font-medium flex items-center gap-1 transition-colors">
+              Generar nuevo VDA <span>→</span>
+            </Link>
+          </div>
+        </div>
+
+        {/* Tarjeta 2: Clientes */}
+        <div className="bg-gradient-to-br from-emerald-900 to-gray-800 p-6 rounded-2xl shadow-xl border border-emerald-800/50 transform hover:-translate-y-1 transition-transform">
+          <div className="flex justify-between items-start">
+            <div>
+              <p className="text-emerald-300 font-semibold mb-1 uppercase tracking-wider text-sm">Clientes Activos</p>
+              <h3 className="text-5xl font-bold text-white">{stats.totales.clientes}</h3>
+            </div>
+            <div className="text-4xl">🏭</div>
+          </div>
+          <div className="mt-4">
+            <Link to="/clientes" className="text-sm text-emerald-400 hover:text-white font-medium flex items-center gap-1 transition-colors">
+              Gestionar catálogo <span>→</span>
+            </Link>
+          </div>
+        </div>
+
+        {/* Tarjeta 3: Transportistas */}
+        <div className="bg-gradient-to-br from-orange-900 to-gray-800 p-6 rounded-2xl shadow-xl border border-orange-800/50 transform hover:-translate-y-1 transition-transform">
+          <div className="flex justify-between items-start">
+            <div>
+              <p className="text-orange-300 font-semibold mb-1 uppercase tracking-wider text-sm">Transportistas</p>
+              <h3 className="text-5xl font-bold text-white">{stats.totales.transportistas}</h3>
+            </div>
+            <div className="text-4xl">🚛</div>
+          </div>
+          <div className="mt-4">
+            <Link to="/transportistas" className="text-sm text-orange-400 hover:text-white font-medium flex items-center gap-1 transition-colors">
+              Ver unidades <span>→</span>
+            </Link>
+          </div>
+        </div>
+
+      </div>
+
+      {/* --- SECCIÓN DE ACTIVIDAD RECIENTE --- */}
+      <div className="bg-gray-800 rounded-xl shadow-lg border border-gray-700 overflow-hidden">
+        <div className="p-6 border-b border-gray-700 bg-gray-900/50">
+          <h2 className="text-xl font-bold text-white flex items-center gap-2">
+            ⏱️ Últimos 5 Embarques Generados
+          </h2>
+        </div>
+        
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className="bg-gray-800 text-gray-400 text-sm uppercase tracking-wider border-b border-gray-700">
+                <th className="p-4 font-semibold">Folio Interno</th>
+                <th className="p-4 font-semibold">Fecha de Salida</th>
+                <th className="p-4 font-semibold">ID Destino</th>
+                <th className="p-4 font-semibold text-center">Estado del Sistema</th>
               </tr>
-            ) : (
-              /* Si hay datos, los mapeamos (dibujamos) fila por fila */
-              embarques.map((emb) => (
-                <tr key={emb.id} style={{ borderBottom: '1px solid #444' }}>
-                  <td style={{ padding: '12px', border: '1px solid #555' }}>{emb.id}</td>
-                  <td style={{ padding: '12px', border: '1px solid #555', fontWeight: 'bold' }}>{emb.folio_embarque}</td>
-                  <td style={{ padding: '12px', border: '1px solid #555' }}>
-                    {new Date(emb.fecha_salida).toLocaleString()}
+            </thead>
+            <tbody className="divide-y divide-gray-700/50">
+              {stats.actividad_reciente.map((embarque) => (
+                <tr key={embarque.id} className="hover:bg-gray-700/30 transition-colors">
+                  <td className="p-4 text-blue-400 font-mono font-bold">{embarque.folio_embarque}</td>
+                  <td className="p-4 text-gray-300">
+                    {new Date(embarque.fecha_salida).toLocaleString('es-MX')}
                   </td>
-                  <td style={{ padding: '12px', border: '1px solid #555' }}>
-                    <span style={{ backgroundColor: '#28a745', padding: '4px 8px', borderRadius: '4px', fontSize: '12px' }}>
-                      {emb.estatus_edi}
+                  <td className="p-4 text-gray-400 font-mono">Cliente #{embarque.cliente_id}</td>
+                  <td className="p-4 text-center">
+                    <span className="bg-green-900/50 text-green-400 border border-green-800/50 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide">
+                      VDA Listo
                     </span>
                   </td>
-                  <td style={{ padding: '12px', border: '1px solid #555', textAlign: 'center' }}>
-                    <button 
-                      onClick={() => handleDescargar(emb.id, emb.folio_embarque)}
-                      style={{ padding: '5px 10px', backgroundColor: '#007bff', color: 'white', border: 'none', cursor: 'pointer', borderRadius: '3px' }}
-                    >
-                      Descargar VDA
-                    </button>
+                </tr>
+              ))}
+              {stats.actividad_reciente.length === 0 && (
+                <tr>
+                  <td colSpan="4" className="p-8 text-center text-gray-500 font-medium">
+                    Aún no hay actividad registrada en el sistema.
                   </td>
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      )}
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
     </div>
   );
 };
