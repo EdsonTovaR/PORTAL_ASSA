@@ -5,6 +5,8 @@ const Clientes = () => {
   // 1. ESTADOS
   const [clientes, setClientes] = useState([]);
   const [cargando, setCargando] = useState(true);
+  // Estado para el texto del buscador
+  const [busqueda, setBusqueda] = useState('');
 
   // --- ESTADOS PARA LA EDICIÓN (MODAL) ---
 const [isModalOpen, setIsModalOpen] = useState(false);
@@ -45,10 +47,6 @@ const [clienteEditando, setClienteEditando] = useState({ id: null, nombre: '', c
     setClienteEditando({ id: null, nombre: '', codigo_odette: '' }); // Limpiamos la memoria
   };
 
-  
-
-  
-
   // Controlador unificado: Decide si hace POST (Crear) o PUT (Actualizar)
   const handleGuardar = async (e) => {
     e.preventDefault();
@@ -79,13 +77,32 @@ const [clienteEditando, setClienteEditando] = useState({ id: null, nombre: '', c
     }
   };
 
+// Filtramos la lista en tiempo real
+  const clientesFiltrados = clientes.filter(cliente => 
+    cliente.nombre.toLowerCase().includes(busqueda.toLowerCase()) ||
+    cliente.codigo_odette.toLowerCase().includes(busqueda.toLowerCase())
+  );
+
   return (
     <div className="max-w-6xl mx-auto mt-8 mb-12">
-      <div className="flex justify-between items-center mb-6">
+      {/* ENCABEZADO CON BUSCADOR Y BOTÓN */}
+      <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
         <h2 className="text-3xl font-bold text-white">Catálogo de Clientes</h2>
-        <button onClick={abrirModalParaCrear} className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-bold transition-colors shadow-lg shadow-blue-900/50">
-        + Nuevo Cliente
-        </button>
+        
+        <div className="flex w-full md:w-auto gap-4">
+          {/* BARRA DE BÚSQUEDA */}
+          <input 
+            type="text" 
+            placeholder="🔍 Buscar cliente u Odette..." 
+            value={busqueda}
+            onChange={(e) => setBusqueda(e.target.value)}
+            className="w-full md:w-64 p-2.5 rounded-lg bg-gray-800 text-white border border-gray-700 focus:border-blue-500 focus:outline-none transition-colors"
+          />
+          
+          <button onClick={abrirModalParaCrear} className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-bold transition-colors whitespace-nowrap shadow-lg shadow-blue-900/50">
+            + Nuevo Cliente
+          </button>
+        </div>
       </div>
 
       <div className="bg-gray-800 rounded-xl shadow-lg border border-gray-700 overflow-hidden">
@@ -100,8 +117,9 @@ const [clienteEditando, setClienteEditando] = useState({ id: null, nombre: '', c
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-700/50">
-              {clientes.map((cliente) => (
-                <tr key={cliente.id} className="hover:bg-gray-700/30 transition-colors">
+        {/* ¡OJO AQUÍ! Cambiamos 'clientes' por 'clientesFiltrados' */}
+        {clientesFiltrados.map((cliente) => (
+          <tr key={cliente.id} className="hover:bg-gray-700/30 transition-colors">
                   <td className="p-4 text-gray-500 font-mono">#{cliente.id}</td>
                   <td className="p-4 text-white font-medium">{cliente.nombre}</td>
                   <td className="p-4 text-blue-400 font-mono tracking-wide">{cliente.codigo_odette}</td>

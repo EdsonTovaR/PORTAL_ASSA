@@ -49,6 +49,8 @@ const Transportistas = () => {
     setTranspEditando({ id: null, linea_transportista: '', nombre_chofer: '', placas: '' });
   };
 
+  const [busqueda, setBusqueda] = useState('');
+
   // --- EL SÚPER CONTROLADOR DE GUARDADO (POST / PUT) ---
   const handleGuardar = async (e) => {
     e.preventDefault();
@@ -85,19 +87,31 @@ const Transportistas = () => {
     }
   };
 
+  const transportistasFiltrados = transportistas.filter(transp => 
+    transp.linea_transportista.toLowerCase().includes(busqueda.toLowerCase()) ||
+    transp.nombre_chofer.toLowerCase().includes(busqueda.toLowerCase()) ||
+    transp.placas.toLowerCase().includes(busqueda.toLowerCase())
+  );
+
   return (
     <div className="max-w-6xl mx-auto mt-8 mb-12">
-      <div className="flex justify-between items-center mb-6">
+      <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
         <h2 className="text-3xl font-bold text-white">Líneas Transportistas</h2>
-        {/* BOTÓN CONECTADO PARA CREAR */}
-        <button 
-          onClick={abrirModalParaCrear} 
-          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-bold transition-colors shadow-lg shadow-blue-900/50"
-        >
-          + Nuevo Transportista
-        </button>
+        
+        <div className="flex w-full md:w-auto gap-4">
+          <input 
+            type="text" 
+            placeholder="🔍 Buscar línea, chofer o placas..." 
+            value={busqueda}
+            onChange={(e) => setBusqueda(e.target.value)}
+            className="w-full md:w-72 p-2.5 rounded-lg bg-gray-800 text-white border border-gray-700 focus:border-blue-500 focus:outline-none transition-colors"
+          />
+          
+          <button onClick={abrirModalParaCrear} className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-bold transition-colors whitespace-nowrap shadow-lg shadow-blue-900/50">
+            + Nuevo Transportista
+          </button>
+        </div>
       </div>
-
       <div className="bg-gray-800 rounded-xl shadow-lg border border-gray-700 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
@@ -111,7 +125,8 @@ const Transportistas = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-700/50">
-              {transportistas.map((transp) => (
+        {/* Usamos transportistasFiltrados */}
+        {transportistasFiltrados.map((transp) => (
                 <tr key={transp.id} className="hover:bg-gray-700/30 transition-colors">
                   <td className="p-4 text-gray-500 font-mono">#{transp.id}</td>
                   <td className="p-4 text-white font-medium">{transp.linea_transportista}</td>
