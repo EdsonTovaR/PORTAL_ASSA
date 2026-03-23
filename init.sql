@@ -51,3 +51,10 @@ CREATE TABLE IF NOT EXISTS usuarios (
     hashed_password VARCHAR(255) NOT NULL,
     is_active BOOLEAN DEFAULT TRUE
 );
+
+CREATE TABLE configuracion (
+    id SERIAL PRIMARY KEY,
+    nombre_empresa VARCHAR(50),
+    direccion VARCHAR(50),
+    logo_url VARCHAR
+);

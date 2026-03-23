@@ -10,10 +10,22 @@ import os
 from pydantic import BaseModel
 from sqlalchemy import func
 
+from fastapi import File, UploadFile, Form
+from fastapi.staticfiles import StaticFiles
+import shutil
+import os
+
 
 
 # Inicializamos la app
 app = FastAPI(title="API Portal ASSA")
+
+# --- CONFIGURACIÓN DE ARCHIVOS ESTÁTICOS ---
+# Creamos la carpeta físicamente si no existe
+os.makedirs("static/logos", exist_ok=True)
+
+# Le decimos a FastAPI que haga pública esta carpeta
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
 
@@ -327,4 +339,58 @@ def obtener_detalle_embarque(embarque_id: int, db: Session = Depends(get_db), to
     
     # Empaquetamos todo junto
     return {"cabecera": cabecera, "detalles": detalles}
+
+# ==========================================
+# RUTAS DE CONFIGURACIÓN GLOBAL (MARCA BLANCA)
+# ==========================================
+
+@app.get("/configuracion", response_model=schemas.ConfiguracionResponse)
+def obtener_configuracion(db: Session = Depends(get_db)):
+    config = db.query(models.Configuracion).first()
+    
+    # Si es la primera vez que abrimos el sistema y no hay nada, creamos el "Registro 1"
+    if not config:
+        config = models.Configuracion(
+            nombre_empresa="ASSA Industrial", 
+            direccion="San Buenaventura, Coahuila"
+        )
+        db.add(config)
+        db.commit()
+        db.refresh(config)
+        
+    return config
+
+@app.put("/configuracion", response_model=schemas.ConfiguracionResponse)
+def actualizar_configuracion(
+    # Fíjate cómo aquí no usamos BaseModel, usamos Form() y File()
+    nombre_empresa: str = Form(...),
+    direccion: str = Form(...),
+    logo: UploadFile = File(None), # El logo es opcional (puede que solo cambien el nombre)
+    db: Session = Depends(get_db),
+    token: str = Depends(obtener_usuario_actual)
+):
+    config = db.query(models.Configuracion).first()
+    
+    # Actualizamos los textos
+    config.nombre_empresa = nombre_empresa
+    config.direccion = direccion
+    
+    # Si el usuario mandó un archivo nuevo...
+    if logo:
+        # Sacamos la extensión (ej. .png o .jpg)
+        extension = logo.filename.split(".")[-1]
+        nombre_archivo = f"logo_corporativo.{extension}"
+        ruta_fisica = f"static/logos/{nombre_archivo}"
+        
+        # Guardamos el archivo físicamente en el disco duro del servidor
+        with open(ruta_fisica, "wb") as buffer:
+            shutil.copyfileobj(logo.file, buffer)
+            
+        # Guardamos la URL pública en PostgreSQL
+        config.logo_url = f"/static/logos/{nombre_archivo}"
+        
+    db.commit()
+    db.refresh(config)
+    
+    return config
 

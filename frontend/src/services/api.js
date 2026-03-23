@@ -122,6 +122,25 @@ export const getDetalleEmbarque = async (embarqueId) => {
     return response.data;
 };
 
+// --- FUNCIONES DE CONFIGURACIÓN GLOBAL (MARCA BLANCA) ---
+export const getConfiguracion = async () => {
+    const token = localStorage.getItem('token');
+    const response = await api.get('/configuracion', {
+        headers: { 'Authorization': `Bearer ${token}` }
+    });
+    return response.data;
+};
 
+export const actualizarConfiguracion = async (formData) => {
+    const token = localStorage.getItem('token');
+    // ¡OJO AQUÍ! Le decimos a Axios que no envíe JSON, sino un formulario con archivos
+    const response = await api.put('/configuracion', formData, {
+        headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'multipart/form-data'
+        }
+    });
+    return response.data;
+};
 
 export default api;

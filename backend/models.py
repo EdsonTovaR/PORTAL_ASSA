@@ -56,3 +56,12 @@ class EmbarqueDetalle(Base):
 
     # RELACIÓN INVERSA: Le decimos a qué cabecera pertenece esta pieza
     cabecera = relationship("EmbarqueCabecera", back_populates="detalles")
+
+class Configuracion(Base):
+    __tablename__ = "configuracion"
+
+    id = Column(Integer, primary_key=True, index=True)
+    nombre_empresa = Column(String, default="Mi Empresa SaaS")
+    direccion = Column(String, default="Dirección no configurada")
+    # Guardaremos la ruta donde se guardó la imagen, no la imagen en sí
+    logo_url = Column(String, nullable=True)

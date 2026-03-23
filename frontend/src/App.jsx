@@ -6,6 +6,8 @@ import Clientes from './pages/Clientes';
 import Transportistas from './pages/Transportistas';
 import Login from './pages/Login';
 import Historial from './pages/Historial';
+import Configuracion from './pages/Configuracion';
+import { ConfigProvider } from './context/ConfigContext';
 
 // --- EL CADENERO DE SEGURIDAD ---
 // Este componente envuelve a las páginas que queremos proteger
@@ -19,6 +21,7 @@ const RutaProtegida = ({ children }) => {
   
   // Si hay token, lo dejamos pasar a la página (children)
   return (
+    
     // Envolvemos todo en un div flex que ocupa el 100% del alto (min-h-screen)
     // y le ponemos el fondo oscuro global (bg-gray-900)
     <div className="min-h-screen bg-gray-900 flex flex-col">
@@ -33,8 +36,10 @@ const RutaProtegida = ({ children }) => {
 
 function App() {
   return (
+    
     // BrowserRouter envuelve toda la app para habilitar el sistema de rutas
     <BrowserRouter>
+    <ConfigProvider>
       <Routes>
         {/* Ruta pública: Cualquiera puede verla */}
         <Route path="/login" element={<Login />} />
@@ -59,8 +64,12 @@ function App() {
         <Route path="/historial" element={
           <RutaProtegida><Historial /></RutaProtegida>
         } />
+        <Route path="/configuracion" element={
+          <RutaProtegida><Configuracion /></RutaProtegida>} />
+
+
       </Routes>
-      
+      </ConfigProvider>
     </BrowserRouter>
   );
 }

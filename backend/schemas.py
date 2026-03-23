@@ -96,3 +96,18 @@ class UsuarioResponse(UsuarioBase):
 class Token(BaseModel):
     access_token: str
     token_type: str
+
+# --- ESQUEMAS PARA CONFIGURACIÓN ---
+class ConfiguracionBase(BaseModel):
+    nombre_empresa: str
+    direccion: str
+
+class ConfiguracionUpdate(ConfiguracionBase):
+    pass # Solo heredamos, usaremos esto para actualizar
+
+class ConfiguracionResponse(ConfiguracionBase):
+    id: int
+    logo_url: Optional[str] = None
+
+    class Config:
+        from_attributes = True
