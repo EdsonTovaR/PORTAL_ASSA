@@ -102,7 +102,7 @@ const Dashboard = () => {
               <tr className="bg-gray-800 text-gray-400 text-sm uppercase tracking-wider border-b border-gray-700">
                 <th className="p-4 font-semibold">Folio Interno</th>
                 <th className="p-4 font-semibold">Fecha de Salida</th>
-                <th className="p-4 font-semibold">ID Destino</th>
+                <th className="p-4 font-semibold">Empresa Destino</th>
                 <th className="p-4 font-semibold text-center">Estado del Sistema</th>
               </tr>
             </thead>
@@ -113,7 +113,8 @@ const Dashboard = () => {
                   <td className="p-4 text-gray-300">
                     {new Date(embarque.fecha_salida).toLocaleString('es-MX')}
                   </td>
-                  <td className="p-4 text-gray-400 font-mono">Cliente #{embarque.cliente_id}</td>
+                  {/* Ahora mostramos el nombre real y le damos un color más resaltado */}
+                  <td className="p-4 text-emerald-400 font-semibold">{embarque.cliente_nombre}</td>
                   <td className="p-4 text-center">
                     <span className="bg-green-900/50 text-green-400 border border-green-800/50 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide">
                       VDA Listo

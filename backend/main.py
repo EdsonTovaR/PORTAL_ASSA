@@ -150,16 +150,31 @@ def crear_transportista(transportista: schemas.TransportistaCreate, db: Session 
     db.refresh(nuevo_transportista)
     return nuevo_transportista
 
-# --- NUEVA RUTA: Estadísticas para el Dashboard ---
+# ---Estadísticas para el Dashboard ---
 @app.get("/estadisticas")
 def obtener_estadisticas(db: Session = Depends(get_db), token: str = Depends(obtener_usuario_actual)):
-    # Hacemos conteos ultra-rápidos directamente en PostgreSQL
+    # 1. Los conteos rápidos se quedan igual
     total_clientes = db.query(models.Cliente).count()
     total_transportistas = db.query(models.Transportista).count()
     total_embarques = db.query(models.EmbarqueCabecera).count()
     
-    # Extraemos solo los últimos 5 embarques para un "vistazo rápido"
+    # 2. Obtenemos los últimos 5 embarques
     ultimos_embarques = db.query(models.EmbarqueCabecera).order_by(models.EmbarqueCabecera.id.desc()).limit(5).all()
+    
+    # 3. TRADUCCIÓN DE ID A NOMBRE PARA UX
+    actividad_formateada = []
+    for emb in ultimos_embarques:
+        # Buscamos al cliente en la BD
+        cliente_db = db.query(models.Cliente).filter(models.Cliente.id == emb.cliente_id).first()
+        
+        # Armamos un diccionario a la medida para React
+        actividad_formateada.append({
+            "id": emb.id,
+            "folio_embarque": emb.folio_embarque,
+            "fecha_salida": emb.fecha_salida,
+            # Si el cliente existe mandamos su nombre, si no, decimos "Desconocido"
+            "cliente_nombre": cliente_db.nombre if cliente_db else "Desconocido" 
+        })
     
     return {
         "totales": {
@@ -167,7 +182,7 @@ def obtener_estadisticas(db: Session = Depends(get_db), token: str = Depends(obt
             "transportistas": total_transportistas,
             "embarques": total_embarques
         },
-        "actividad_reciente": ultimos_embarques
+        "actividad_reciente": actividad_formateada
     }
 
 # ==========================================
@@ -246,7 +261,7 @@ class ClienteActualizar(BaseModel):
     nombre: str
     codigo_odette: str
 
-# --- NUEVA RUTA: Actualizar Cliente (PUT) ---
+# ---Actualizar Cliente (PUT) ---
 @app.put("/clientes/{cliente_id}")
 def actualizar_cliente(
     cliente_id: int, 
