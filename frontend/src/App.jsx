@@ -5,6 +5,7 @@ import NuevoEmbarque from './pages/NuevoEmbarque';
 import Clientes from './pages/Clientes';
 import Transportistas from './pages/Transportistas';
 import Login from './pages/Login';
+import Historial from './pages/Historial';
 
 // --- EL CADENERO DE SEGURIDAD ---
 // Este componente envuelve a las páginas que queremos proteger
@@ -54,7 +55,12 @@ function App() {
         <Route path="/transportistas" element={
           <RutaProtegida><Transportistas /></RutaProtegida>
         } />
+        
+        <Route path="/historial" element={
+          <RutaProtegida><Historial /></RutaProtegida>
+        } />
       </Routes>
+      
     </BrowserRouter>
   );
 }

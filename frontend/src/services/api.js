@@ -111,6 +111,17 @@ export const getEstadisticas = async () => {
     return response.data;
 };
 
+// --- FUNCIÓN PARA OBTENER DETALLES DE UN EMBARQUE ---
+export const getDetalleEmbarque = async (embarqueId) => {
+    const token = localStorage.getItem('token');
+    const response = await api.get(`/embarques/${embarqueId}/detalles`, {
+        headers: {
+            'Authorization': `Bearer ${token}`
+        }
+    });
+    return response.data;
+};
+
 
 
 export default api;

@@ -314,3 +314,17 @@ def actualizar_transportista(
     
     return {"mensaje": "Transportista actualizado", "transportista": transp_db}
 
+# --- Obtener detalles de un embarque específico ---
+@app.get("/embarques/{embarque_id}/detalles")
+def obtener_detalle_embarque(embarque_id: int, db: Session = Depends(get_db), token: str = Depends(obtener_usuario_actual)):
+    # Buscamos la cabecera
+    cabecera = db.query(models.EmbarqueCabecera).filter(models.EmbarqueCabecera.id == embarque_id).first()
+    if not cabecera:
+        raise HTTPException(status_code=404, detail="Embarque no encontrado")
+        
+    # Buscamos las piezas que le pertenecen a ese embarque
+    detalles = db.query(models.EmbarqueDetalle).filter(models.EmbarqueDetalle.embarque_id == embarque_id).all()
+    
+    # Empaquetamos todo junto
+    return {"cabecera": cabecera, "detalles": detalles}
+

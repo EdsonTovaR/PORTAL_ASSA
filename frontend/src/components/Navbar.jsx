@@ -24,6 +24,9 @@ const Navbar = () => {
         <Link to="/clientes" className="text-blue-400 hover:text-blue-300 font-semibold transition-colors">
           Catálogo Clientes
         </Link>
+        <Link to="/historial" className="text-blue-400 hover:text-blue-300 font-semibold transition-colors">
+          Historial EDI
+        </Link>
         <Link to="/transportistas" className="text-blue-400 hover:text-blue-300 font-semibold transition-colors">
           Transportistas
         </Link>
