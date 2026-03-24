@@ -117,7 +117,7 @@ const [clienteEditando, setClienteEditando] = useState({ id: null, nombre: '', c
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-700/50">
-        {/* ¡OJO AQUÍ! Cambiamos 'clientes' por 'clientesFiltrados' */}
+        
         {clientesFiltrados.map((cliente) => (
           <tr key={cliente.id} className="hover:bg-gray-700/30 transition-colors">
                   <td className="p-4 text-gray-500 font-mono">#{cliente.id}</td>
