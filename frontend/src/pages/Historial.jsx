@@ -5,6 +5,40 @@ import autoTable from 'jspdf-autotable';
 import { useContext } from 'react';
 import { ConfigContext } from '../context/ConfigContext';
 
+// Función maestra para leer imágenes saltándose restricciones
+const getBase64ImageFromUrl = (imageUrl) => {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    
+    // ESTA ES LA LLAVE MÁGICA: Le pedimos permiso explícito al navegador
+    img.crossOrigin = 'Anonymous'; 
+    
+    img.onload = () => {
+      // Creamos un lienzo invisible del tamaño exacto de tu logo
+      const canvas = document.createElement('canvas');
+      canvas.width = img.width;
+      canvas.height = img.height;
+      const ctx = canvas.getContext('2d');
+      
+      // Dibujamos la imagen en el lienzo
+      ctx.drawImage(img, 0, 0);
+      
+      // Extraemos la imagen forzando un formato PNG estándar
+      const dataURL = canvas.toDataURL('image/png');
+      resolve(dataURL);
+    };
+    
+    img.onerror = (error) => {
+      console.error("El navegador bloqueó la imagen:", error);
+      reject(error);
+    };
+    
+    // Truco pro: agregamos la fecha al final de la URL para evitar que 
+    // el navegador use una versión "cacheada" sin permisos de CORS
+    img.src = imageUrl + '?t=' + new Date().getTime(); 
+  });
+};
+
 const Historial = () => {
   // Extraemos la configuración global
   const { config } = useContext(ConfigContext);
@@ -82,7 +116,7 @@ const Historial = () => {
   };
 
   // ==========================================
-  // MAGIA 2: EXPORTAR A PDF (PACKING LIST)
+  // EXPORTAR A PDF (PACKING LIST)
   // ==========================================
   const descargarPDF = async (embarque) => {
     try {
@@ -92,21 +126,39 @@ const Historial = () => {
       // Inicializamos el documento PDF
       const doc = new jsPDF();
       
-      // Dibujamos el Encabezado Corporativo Dinámico
+      // 1. DIBUJAMOS EL LOGO (Si el usuario subió uno)
+      if (config.logo_url) {
+        try {
+          const logoUrlCompleta = `http://localhost:8000${config.logo_url}`;
+          const base64Img = await getBase64ImageFromUrl(logoUrlCompleta);
+          
+          // Como nuestro Canvas siempre entrega PNG, se lo decimos directo a jsPDF
+          doc.addImage(base64Img, 'PNG', 160, 10, 35, 35);
+        } catch (error) {
+          console.error("Error al incrustar el logo en el PDF:", error);
+        }
+      }
+
+      // 2. DIBUJAMOS TEXTOS CORPORATIVOS (Izquierda)
       doc.setFontSize(22);
-      doc.setTextColor(0, 86, 179); 
-      //Lee el nombre de la empresa desde la base de datos
+      doc.setTextColor(0, 86, 179); // Azul ASSA
       doc.text(config.nombre_empresa.toUpperCase(), 14, 20);
       
+      // Nueva línea: La Dirección Fiscal
+      doc.setFontSize(10);
+      doc.setTextColor(100, 100, 100); // Gris oscuro
+      doc.text(config.direccion, 14, 28);
+      
+      // 3. TÍTULO DEL DOCUMENTO
       doc.setFontSize(16);
       doc.setTextColor(40, 40, 40);
-      doc.text("Packing List Oficial", 14, 30);
+      doc.text("Packing List Oficial", 14, 42);
       
-      // Datos Generales
+      // 4. DATOS GENERALES
       doc.setFontSize(11);
-      doc.text(`Folio Interno: ${embarque.folio_embarque}`, 14, 45);
-      doc.text(`Cliente Destino: ${nombreEmpresa}`, 14, 52);
-      doc.text(`Fecha de Salida: ${new Date(embarque.fecha_salida).toLocaleString('es-MX')}`, 14, 59);
+      doc.text(`Folio Interno: ${embarque.folio_embarque}`, 14, 52);
+      doc.text(`Cliente Destino: ${nombreEmpresa}`, 14, 59);
+      doc.text(`Fecha de Salida: ${new Date(embarque.fecha_salida).toLocaleString('es-MX')}`, 14, 66);
 
       // Preparamos los datos de las piezas para la tabla
       const filasTabla = data.detalles.map(pieza => [
@@ -115,9 +167,9 @@ const Historial = () => {
         `${pieza.peso_kg} kg`
       ]);
 
-      // Dibujamos la tabla
+      // Dibujamos la tabla (La bajamos un poco a Y: 75 para hacer espacio)
       autoTable(doc, {
-        startY: 70,
+        startY: 75,
         head: [['Número de Parte', 'Cantidad', 'Peso Neto']],
         body: filasTabla,
         theme: 'grid',
