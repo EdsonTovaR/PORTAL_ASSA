@@ -2,8 +2,13 @@ import { useState, useEffect } from 'react';
 import { getEmbarques, getClientes, getDetalleEmbarque } from '../services/api';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { useContext } from 'react';
+import { ConfigContext } from '../context/ConfigContext';
 
 const Historial = () => {
+  // Extraemos la configuración global
+  const { config } = useContext(ConfigContext);
+
   const [embarques, setEmbarques] = useState([]);
   const [clientes, setClientes] = useState([]);
   const [busqueda, setBusqueda] = useState('');
@@ -87,10 +92,11 @@ const Historial = () => {
       // Inicializamos el documento PDF
       const doc = new jsPDF();
       
-      // Dibujamos el Encabezado Corporativo
+      // Dibujamos el Encabezado Corporativo Dinámico
       doc.setFontSize(22);
-      doc.setTextColor(0, 86, 179); // Azul ASSA
-      doc.text("PORTAL ASSA", 14, 20);
+      doc.setTextColor(0, 86, 179); 
+      //Lee el nombre de la empresa desde la base de datos
+      doc.text(config.nombre_empresa.toUpperCase(), 14, 20);
       
       doc.setFontSize(16);
       doc.setTextColor(40, 40, 40);
